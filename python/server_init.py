@@ -19,7 +19,7 @@ def start_server():
     server.run_forever()
 
 def message_received(client, server, message):
-    global agents, simulation, cur_clients, cur_actions, cur_state, progress, cur_data, valid_receip
+    global agents, simulation, cur_clients, cur_actions, cur_state, progress, cur_data, valid_receipt
     if len(message) == 0: return
     if message[0] == 'e':
         #This is a debug message
