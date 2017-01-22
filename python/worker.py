@@ -12,9 +12,9 @@ import_path = os.path.abspath(os.path.join(current_path, "../.."))
 if import_path not in sys.path:
   sys.path.append(import_path)
 
-from estimators import ValueEstimator, PolicyEstimator
+from estimators import DuelingDDQN
 
-Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
+# Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 
 
 # buffer should be a list of transition tuples
@@ -34,7 +34,7 @@ class experience_buffer():
 
 
 
-def make_copy_params_op(v1_list, v2_list):
+def make_copy_params_op(v1_list, v2_list, tau=None):
   """
   Creates an operation that copies parameters from variable in v1_list to variables in v2_list.
   The ordering of the variables in the lists must be identical.
@@ -43,11 +43,16 @@ def make_copy_params_op(v1_list, v2_list):
   v2_list = list(sorted(v2_list, key=lambda v: v.name))
 
   update_ops = []
-  for v1, v2 in zip(v1_list, v2_list):
-    op = v2.assign(v1)
-    update_ops.append(op)
 
+  if tau is None:
+    for v1, v2 in zip(v1_list, v2_list):
+      if tau is None:
+        op = v2.assign(v1)
+      else:
+        op = v2.assign((v1.value()*tau) + ((1-tau)*v1.value()))
+      update_ops.append(op)
   return update_ops
+
 
 def make_train_op(local_estimator, global_estimator):
   """
@@ -64,24 +69,14 @@ def make_train_op(local_estimator, global_estimator):
 
 
 class Worker(object):
-  """
-  An A3C worker thread. Runs episodes locally and updates global shared value and policy nets.
-  Args:
-    name: A unique name for this worker
-    policy_net: Instance of the globally shared policy net
-    value_net: Instance of the globally shared value net
-    global_counter: Iterator that holds the global step
-    discount_factor: Reward discount factor
-    summary_writer: A tf.train.SummaryWriter for Tensorboard summaries
-    max_global_steps: If set, stop coordinator when global_counter > max_global_steps
-  """
-  def __init__(self, name, policy_net, value_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
+  # TODO - change the args to only accept one global network, not two.
+  # TODO - initialise two local Q networks - one for target, one as main. See AJ's code in simple sim
+  def __init__(self, name, global_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
     self.discount_factor = discount_factor
     self.max_global_steps = max_global_steps
     self.global_step = tf.contrib.framework.get_global_step()
-    self.global_policy_net = policy_net
-    self.global_value_net = value_net
+    self.global_network = global_net
     self.global_counter = global_counter
     self.local_counter = itertools.count()
     self.sp = StateProcessor() # NEEDS FIXING
@@ -90,20 +85,37 @@ class Worker(object):
     self.replay_memory = experience_buffer() # needed to allow for exeperience replay
     self.batch_size = 32 # how many items to sample from the experience when training
 
-    # Create local policy/value nets that are not updated asynchronously
-    with tf.variable_scope(name):
-      self.policy_net = PolicyEstimator(policy_net.num_outputs)
-      self.value_net = ValueEstimator(reuse=True)
+    self.start_epsilon = 1
+    self.end_epsilon = 0.1
+    self.annealing_steps = 30000
+    self.epsilon = self.start_epsilon
+
+    self.done = False
+    self.net_reward = 0
+
+    self.epsilon_update = float(self.start_epsilon-self.end_epsilon)/float(self.annealing_steps)
+
+    # Create two local q nets - target and main
+    with tf.variable_scope(name + "main"):
+      self.main_qn = DuelingDDQN()
+    with tf.variable_scope(name + "target")
+      self.target_qn = DuelingDDQN()
 
     # Op to copy params from global policy/valuenets
     self.copy_params_op = make_copy_params_op(
       tf.contrib.slim.get_variables(scope="global", collection=tf.GraphKeys.TRAINABLE_VARIABLES),
-      tf.contrib.slim.get_variables(scope=self.name, collection=tf.GraphKeys.TRAINABLE_VARIABLES))
+      tf.contrib.slim.get_variables(scope=(self.name + "main"), collection=tf.GraphKeys.TRAINABLE_VARIABLES))
 
-    self.vnet_train_op = make_train_op(self.value_net, self.global_value_net)
-    self.pnet_train_op = make_train_op(self.policy_net, self.global_policy_net)
+    #Need an operation here to copy params (at rate tau) from main network to target network
+    self.copy_params_to_target = make_copy_params_op(
+      tf.contrib.slim.get_variables(scope=(self.name + "main"), collection=tf.GraphKeys.TRAINABLE_VARIABLES), 
+      tf.contrib.slim.get_variables(scope=(self.name + "target"), collection=tf.GraphKeys.TRAINABLE_VARIABLES),
+      tau = 0.001)
+
+    self.global_train_op = make_train_op(self.main_qn, self.global_network)
 
     self.state = None
+
 
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
@@ -114,69 +126,69 @@ class Worker(object):
         INITIAL_STEPS = 2000
         self.build_replay_memory(INITIAL_STEPS, sess)
 
+        EPISODE_LENGTH = 1500
+        total_steps_done = 0
         while not coord.should_stop():
-          # Copy Parameters from the global networks
-          sess.run(self.copy_params_op)
+          # while not stop:
+          # run one step, store in replay memory
+          # if step number %4 == 0 , call copy params op and copy target op
+          # sample to get past transitions
+          # call update on this
+          self.state = send_reset_signal() # TODO implement this on the client
+          timestep = 0
+          self.net_reward = 0 # total episode reward - reset to zero at the end of every episode
 
-          # Collect some experience
-          transitions, local_t, global_t = self.run_n_steps(t_max, sess)
+          while timestep < EPISODE_LENGTH:
 
-          if self.max_global_steps is not None and global_t >= self.max_global_steps:
-            tf.logging.info("Reached global step {}. Stopping.".format(global_t))
-            coord.request_stop()
-            return
+            timestep += 1
+            total_steps_done += 1
+            
+            if epsilon > self.end_epsilon:
+              epsilon -= self.epsilon_update
 
-          # Update the global networks
-          self.update(transitions, sess)
+            self.run_one_step(sess)
+
+            if timestep % 4 == 0:
+              # sample from experience
+              train_batch = self.replay_memory.sample(batch_size)
+
+              self.update(train_batch,sess)
+
+              sess.run(self.copy_params_op)
+              sess.run(self.copy_params_to_target)
 
       except tf.errors.CancelledError:
         return
 
-  def _policy_net_predict(self, state, sess):
-    feed_dict = { self.policy_net.states: [state] }
-    preds = sess.run(self.policy_net.predictions, feed_dict)
-    return preds["probs"][0]
 
-  def _value_net_predict(self, state, sess):
-    feed_dict = { self.value_net.states: [state] }
-    preds = sess.run(self.value_net.predictions, feed_dict)
-    return preds["logits"][0]
+  # take a step from self.state with epsilon greedy policy
+  # store transition in replay memory
+  # update self.net_reward and state information
+  def run_one_step(self, sess):
+    #Choose an action by greedily (with e chance of random action) from the Q-network
+    if np.random.rand(1) < self.epsilon:
+      action = np.random.randint(0,4)
+      print("choosing random action, it is ", action)
+    else:
+      action = sess.run(self.main_qn.predict,feed_dict={main_qn.states:[self.state]})[0]
+      print("choosing action from network output, it is ", action)
 
-  def run_n_steps(self, n, sess):
-    transitions = []
-    for _ in range(n):
-      # Take a step
-      action_probs = self._policy_net_predict(self.state, sess)
-      action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-      next_state, reward, done, _ = self.env.step(action) # need to reimplement env.step
-      next_state = atari_helpers.atari_make_next_state(self.state, self.sp.process(next_state)) # wtf is this?
+    next_state, reward, done = step_simulation(action) # TODO implement this client side
+   
+    self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
 
-      # Store transition
-      transitions.append(Transition(
-        state=self.state, action=action, reward=reward, next_state=next_state, done=done))
+    # Increase local and global counters
+    local_t = next(self.local_counter)
+    global_t = next(self.global_counter)
 
-      # Increase local and global counters
-      local_t = next(self.local_counter)
-      global_t = next(self.global_counter)
+    if local_t % 100 == 0:
+      tf.logging.info("{}: local Step {}, global step {}".format(self.name, local_t, global_t))
 
-      if local_t % 100 == 0:
-        tf.logging.info("{}: local Step {}, global step {}".format(self.name, local_t, global_t))
+    self.state = next_state
+    self.net_reward += reward
 
-      if done:
-        self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) #this should just be reset?
-        break
-      else:
-        self.state = next_state
 
-    # store these transitions in replay memory
-    self.replay_memory.add(transitions)
-
-    # Sample from replay memory to find a set of transition tuples to train on
-    train_transitions = self.replay_memory.sample(self.batch_size)
-
-    # return this and the local/global steps back to the calling function
-    return train_transitions, local_t, global_t
-
+  # this is probably ok as is, just adding to replay memory
   def build_replay_memory(self, steps, sess):
     experience = []
     for _ in range(steps):
@@ -191,57 +203,39 @@ class Worker(object):
     self.replay_memory.add(experience)
 
 
-  def update(self, transitions, sess):
-    """
-    Updates global policy and value networks based on collected experience
-    Args:
-      transitions: A list of experience transitions
-      sess: A Tensorflow session
-    """
 
-    # If we episode was not done we bootstrap the value from the last state
-    reward = 0.0
-    if not transitions[-1].done:
-      reward = self._value_net_predict(transitions[-1].next_state, sess)
+  # TODO - this needs changing - can get rid of a lot of the complexity with regards to calculating rewards
+  # TODO - should mirror part of the simple_sim. Structure here is a lot better, so use this
+  def update(self, train_batch, sess):
 
-    # Accumulate minibatch exmaples
-    states = []
-    policy_targets = []
-    value_targets = []
-    actions = []
+    actions_from_q1 = sess.run(main_qn.predict,feed_dict={main_qn.states:np.vstack(train_batch[:,3])})
 
-    for transition in transitions[::-1]:
-      reward = transition.reward + self.discount_factor * reward # TODO fix this - won't work unless we have a sequence of samples in order
-      policy_target = (reward - self._value_net_predict(transition.state, sess))
-      # Accumulate updates
-      states.append(transition.state)
-      actions.append(transition.action)
-      policy_targets.append(policy_target)
-      value_targets.append(reward)
+    all_q_vals = sess.run(target_qn.q_out,feed_dict={target_qn.states:np.vstack(trainBatch[:,3])})
 
-    feed_dict = {
-      self.policy_net.states: np.array(states),
-      self.policy_net.targets: policy_targets,
-      self.policy_net.actions: actions,
-      self.value_net.states: np.array(states),
-      self.value_net.targets: value_targets,
+    end_multiplier = -(train_batch[:,4] - 1)
+
+    double_q_values = all_q_vals[range(batch_size),actions_from_q1]
+    target_q_vals = train_batch[:,2] + (self.discount_factor * double_q_values * end_multiplier)
+
+    feeder = {
+      self.main_qn.states: np.vstack(train_batch[:,0]),
+      self.main_qn.target_q: target_q_vals,
+      self.main_qn.actions: train_batch[:,1]
     }
 
-    # Train the global estimators using local gradients
-    global_step, pnet_loss, vnet_loss, _, _, pnet_summaries, vnet_summaries = sess.run([
+    global_step, main_qn_loss, _,_ = sess.run([
       self.global_step,
-      self.policy_net.loss,
-      self.value_net.loss,
-      self.pnet_train_op,
-      self.vnet_train_op,
-      self.policy_net.summaries,
-      self.value_net.summaries
-    ], feed_dict)
+      self.main_qn.loss,
+      self.main_qn.train_op,
+      self.global_train_op]
+      , feed_dict=feeder)
 
-    # Write summaries
-    if self.summary_writer is not None:
-      self.summary_writer.add_summary(pnet_summaries, global_step)
-      self.summary_writer.add_summary(vnet_summaries, global_step)
-      self.summary_writer.flush()
+    # todo add summaries also
 
-    return pnet_loss, vnet_loss, pnet_summaries, vnet_summaries
+    # # Write summaries
+    # if self.summary_writer is not None:
+    #   self.summary_writer.add_summary(pnet_summaries, global_step)
+    #   self.summary_writer.add_summary(vnet_summaries, global_step)
+    #   self.summary_writer.flush()
+
+    # return pnet_loss, vnet_loss, pnet_summaries, vnet_summaries

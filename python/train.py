@@ -19,7 +19,7 @@ if import_path not in sys.path:
   sys.path.append(import_path)
 
 #from lib.atari import helpers as atari_helpers
-from estimators import ValueEstimator, PolicyEstimator
+from estimators import DuelingDDQN
 #from policy_monitor import PolicyMonitor
 from worker import Worker
 
@@ -33,20 +33,6 @@ tf.flags.DEFINE_boolean("reset", False, "If set, delete the existing model direc
 tf.flags.DEFINE_integer("parallelism", None, "Number of threads to run. If not set we run [num_cpu_cores] threads.")
 
 FLAGS = tf.flags.FLAGS
-
-# def make_env(wrap=True):
-#   env = gym.envs.make(FLAGS.env)
-#   if wrap:
-#     env = atari_helpers.AtariEnvWrapper(env)
-#   return env
-
-# # Depending on the game we may have a limited action space
-# env_ = make_env()
-# if FLAGS.env == "Pong-v0" or FLAGS.env == "Breakout-v0":
-#   VALID_ACTIONS = list(range(4))
-# else:
-#   VALID_ACTIONS = list(range(env_.action_space.n))
-# env_.close()
 
 VALID_ACTIONS = list(range(4))
 
@@ -72,10 +58,9 @@ with tf.device("/cpu:0"):
   # Keeps track of the number of updates we've performed
   global_step = tf.Variable(0, name="global_step", trainable=False)
 
-  # Global policy and value nets
+  # Global policy and value nets - TODO - make this into just one network (a dueling DQN)
   with tf.variable_scope("global") as vs:
-    policy_net = PolicyEstimator(num_outputs=len(VALID_ACTIONS))
-    value_net = ValueEstimator(reuse=True)
+    global_network = DuelingDDQN()
 
   # Global step iterator
   global_counter = itertools.count()
@@ -91,10 +76,10 @@ with tf.device("/cpu:0"):
       worker_summary_writer = summary_writer
 
 # we have to augment this to include some information about the environment
+# TODO change as above and also remember we only pass ONE global network to the worker, not two.
     worker = Worker(
       name="worker_{}".format(worker_id),
-      policy_net=policy_net,
-      value_net=value_net,
+      global_net=global_network,
       global_counter=global_counter,
       discount_factor = 0.99,
       summary_writer=worker_summary_writer,
@@ -102,14 +87,6 @@ with tf.device("/cpu:0"):
     workers.append(worker)
 
   saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
-
-  # Used to occasionally save videos for our policy net
-  # and write episode rewards to Tensorboard
-  # pe = PolicyMonitor(
-  #   env=make_env(wrap=False),
-  #   policy_net=policy_net,
-  #   summary_writer=summary_writer,
-  #   saver=saver)
 
 with tf.Session() as sess:
   sess.run(tf.initialize_all_variables())
