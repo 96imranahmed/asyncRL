@@ -37,17 +37,17 @@ class PolicyEstimator():
 
   def __init__(self, num_outputs, reuse=False, trainable=True):
     self.num_outputs = num_outputs
-    self.num_actions = 4 # this might need changing
+    self.state_vec_size = 30 # TODO actually fix this
 
     # Placeholders for our input
-    self.states = tf.placeholder(shape=[None, self.num_actions], dtype=tf.float32, name="states")
+    self.states = tf.placeholder(shape=[None, self.state_vec_size], dtype=tf.float32, name="states")
     # The TD target value - generated from the other network (value network)
     self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
     # Integer id of which action was selected
     self.actions = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
 
     # Normalize
-    X = tf.to_float(self.states) / 255.0
+    X = tf.to_float(self.states)
     batch_size = tf.shape(self.states)[0]
 
     # Graph shared with Value Net
@@ -79,7 +79,6 @@ class PolicyEstimator():
       tf.scalar_summary(self.entropy_mean.op.name, self.entropy_mean)
       tf.histogram_summary(self.entropy.op.name, self.entropy)
 
-      #Don't understand this bit below - need to visualise on tensorboard?
       if trainable:
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         #self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
@@ -91,9 +90,9 @@ class PolicyEstimator():
     # Merge summaries from this network and the shared network (but not the value net)
     var_scope_name = tf.get_variable_scope().name
     summary_ops = tf.get_collection(tf.GraphKeys.SUMMARIES)
-    sumaries = [s for s in summary_ops if "policy_net" in s.name or "shared" in s.name]
-    sumaries = [s for s in summary_ops if var_scope_name in s.name]
-    self.summaries = tf.merge_summary(sumaries)
+    summaries = [s for s in summary_ops if "policy_net" in s.name or "shared" in s.name]
+    summaries = [s for s in summary_ops if var_scope_name in s.name]
+    self.summaries = tf.merge_summary(summaries)
 
 
 class ValueEstimator():
@@ -107,12 +106,13 @@ class ValueEstimator():
   """
 
   def __init__(self, reuse=False, trainable=True):
+     self.state_vec_size = 30 # TODO actually fix this
     # Placeholders for our input
-    self.states = tf.placeholder(shape=[None, self.num_actions], dtype=tf.float32, name="states")
+    self.states = tf.placeholder(shape=[None, self.state_vec_size], dtype=tf.float32, name="states")
     # The TD target value
     self.targets = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
 
-    X = tf.to_float(self.states) / 255.0
+    X = tf.to_float(self.states)
 
     # Graph shared with Value Net
     with tf.variable_scope("shared", reuse=reuse):

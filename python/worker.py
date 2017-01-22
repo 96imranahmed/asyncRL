@@ -1,5 +1,3 @@
-# TODO make sure you sort out experience replay!
-
 import sys
 import os
 import itertools
@@ -112,7 +110,6 @@ class Worker(object):
       # Initial state
       self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) # Needs fixing - need to make initial state using Imran's reset code
       try:
-
         # first of all, logic here to store some stuff in the experience replay
         INITIAL_STEPS = 2000
         self.build_replay_memory(INITIAL_STEPS, sess)
@@ -214,7 +211,7 @@ class Worker(object):
     actions = []
 
     for transition in transitions[::-1]:
-      reward = transition.reward + self.discount_factor * reward
+      reward = transition.reward + self.discount_factor * reward # TODO fix this - won't work unless we have a sequence of samples in order
       policy_target = (reward - self._value_net_predict(transition.state, sess))
       # Accumulate updates
       states.append(transition.state)

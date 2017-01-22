@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import unittest
-import gym
+#import gym
 import sys
 import os
 import numpy as np
@@ -18,9 +18,9 @@ import_path = os.path.abspath(os.path.join(current_path, "../.."))
 if import_path not in sys.path:
   sys.path.append(import_path)
 
-from lib.atari import helpers as atari_helpers
+#from lib.atari import helpers as atari_helpers
 from estimators import ValueEstimator, PolicyEstimator
-from policy_monitor import PolicyMonitor
+#from policy_monitor import PolicyMonitor
 from worker import Worker
 
 
