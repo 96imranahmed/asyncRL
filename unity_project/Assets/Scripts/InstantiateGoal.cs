@@ -75,7 +75,8 @@ public class InstantiateGoal : MonoBehaviour {
             occupiedLocations.Add(spawnLocation);
             GameObject goalClone = (GameObject)Instantiate(goal, spawnLocation, Quaternion.identity);
             goalClone.GetComponent<CollisionDetect>().id = i;
-            dataTrackScript.goals.Add(i, goalClone);
+			dataTrackScript.goals.Add (i, goalClone);
+			dataTrackScript.colDets.Add (i, goalClone.GetComponent<CollisionDetect> ());
             goalClone.transform.SetParent(gameObject.transform);
         }
     }

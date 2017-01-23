@@ -1,3 +1,8 @@
+unity_project/Library/metadata/*
+unity_project/Temp/*
+unity_project/Library/ShaderCache/*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

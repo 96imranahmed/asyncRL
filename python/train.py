@@ -51,7 +51,7 @@ if FLAGS.reset:
 if not os.path.exists(CHECKPOINT_DIR):
   os.makedirs(CHECKPOINT_DIR)
 
-summary_writer = tf.train.SummaryWriter(os.path.join(MODEL_DIR, "train"))
+summary_writer = tf.summary.FileWriter(os.path.join(MODEL_DIR, "train"))
 
 with tf.device("/cpu:0"):
 
@@ -74,9 +74,12 @@ with tf.device("/cpu:0"):
     if worker_id == 0:
       worker_summary_writer = summary_writer
 
-# we have to augment this to include some information about the environment
+    # we have to augment this to include some information about the environment
+    lady_lock = threading.Lock()
     worker = Worker(
-      name="worker_{}".format(worker_id),
+      lock_in = lady_lock,  
+      id_in = worker_id,
+      name ="worker_{}".format(worker_id),
       global_net=global_network,
       global_counter=global_counter,
       discount_factor = 0.99,

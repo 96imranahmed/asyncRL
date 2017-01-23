@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using WebSocketSharp;
+using System.Linq;
 
 public class DataTrack : MonoBehaviour {
 	
@@ -26,19 +27,17 @@ public class DataTrack : MonoBehaviour {
 
     private InstantiateGoal instantiateGoal;
 
-	private CollisionDetect colDet;
-
     public bool discrete;
     public float discreteMagnitude;
 
     private List<GameObject> drones;
-    public Dictionary<int, GameObject> goals;
-
+	public Dictionary<int, CollisionDetect> colDets = new Dictionary<int, CollisionDetect>();
+	public Dictionary<int, GameObject> goals = new Dictionary<int, GameObject>();
+	private List<Movement> moves = new List<Movement> ();
     public bool netControlled = false;
 
     // Use this for initialization
     void Start () {
-        goals = new Dictionary<int, GameObject>();
         drones = new List<GameObject>();
         timeSinceSend = Time.time;
         dir0 = new Vector3(1f, 0f, 0f); //right
@@ -51,47 +50,61 @@ public class DataTrack : MonoBehaviour {
         drones.Add(GameObject.Find("Drone1"));
         drones.Add(GameObject.Find("Drone2"));
         drones.Add(GameObject.Find("Drone3"));
-		ws_cur = new WebSocket ("ws://localhost:9001");
+
+		foreach (GameObject drone in drones) {
+			moves.Add (drone.GetComponent<Movement> ());
+		}
+ 
+		ws_cur = new WebSocket ("ws://localhost:9000");
 		ws_cur.OnMessage += (sender, e) => {
             if (e.IsText)
             {
+				Debug.Log(e.Data);
                 if (netControlled)
                 {
                     netControlled = true;
                 }
                 string actions = e.Data.ToString();
-                if (actions == "-1") {
-                    if (goals.Count != 0)
-                    {
-						foreach (KeyValuePair<int, GameObject> goalPair in goals)
-                        {
-                            GameObject goal = goalPair.Value;
-                            goal.GetComponent<CollisionDetect>().dest = true;
-                        }
-                    }
-                }
+				if (actions == "-1:-1:-1:-1") 
+				{
+					Debug.Log("Resetting!");
+					if (goals.Count != 0)
+					{
+						foreach (KeyValuePair<int, CollisionDetect> colPair in colDets)
+						{
+							CollisionDetect colDet = colPair.Value;
+							colDet.dest = true;
+						}
+					}
+				}
+				List<string> stringList = actions.Split(':').ToList();
+				int reset = 0;
                 for (int i = 0; i < 4; i++)
                 {
                     int action = (int)char.GetNumericValue(actions[i]);
+
                     if (action == 0) {
-                        drones[i].GetComponent<Movement>().direction = dir0;
+						moves[i].direction = dir0;
                     }
                     else if (action == 1) {
-                        drones[i].GetComponent<Movement>().direction = dir1;
+						moves[i].direction = dir1;
                     }
                     else if (action == 2) {
-                        drones[i].GetComponent<Movement>().direction = dir2;
+						moves[i].direction = dir2;
                     }
                     else if (action == 3) {
-                        drones[i].GetComponent<Movement>().direction = dir3;
-                    }
-                    drones[i].GetComponent<Movement>().toSend = true;
+						moves[i].direction = dir3;
+					} 
+					else if (action == -1) {
+						reset+=1;
+					}
+					moves[i].toSend = true;
                     //Debug.Log("Received action, " + e.Data.ToString());
                 }
             }
 		};
 		ws_cur.Connect ();
-		ws_cur.Send ("unity");
+		ws_cur.Send ("sunity:4");
 	}
 	
 	// Update is called once per frame
@@ -152,7 +165,7 @@ public class DataTrack : MonoBehaviour {
 
     public void SendData()
     {
-        ws_cur.Send(buildOutput());
+        ws_cur.Send('d'+buildOutput());
         //Debug.Log("Sending Data, " + buildOutput());
         if (success > 0)
         {

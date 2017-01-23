@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+import sys
+print = lambda x: sys.stdout.write("%s\n" % x)
 from websocket_server import WebsocketServer
 
 PORT = 9000
@@ -19,23 +22,24 @@ def start_server():
     server.run_forever()
 
 def message_received(client, server, message):
+    print(message)
     global agents, simulation, cur_clients, cur_actions, cur_state, progress, cur_data, valid_receipt
     if len(message) == 0: return
     if message[0] == 'e':
         #This is a debug message
         print('Debug: ', message[1:])
     elif message[0] == 's':
-        #This is a setup message - (s{client or unity}{unity - num agents OR client - cur_id})
+        #This is a setup message - (s{client or unity}:{unity - num agents OR client - cur_id})
         msg_lst = message[1:].split(':')
         if msg_lst[0] == "unity":
             simulation = client
             agents = int(msg_lst[1])
             generate_valid_receipt(True)
-            print('Log: Unity simulation connected!', client['id'], ' Expected #agents: ', agents)
+            print('Log: Unity simulation connected! ' + str(client['id']) + ' Expected #agents: ' + str(agents))
         elif msg_lst[0] == "client":
             if (int(msg_lst[1]) <= (agents - 1)):
-                cur_clients[msg_lst[1]] = client
-                print('Client ' + msg_lst[1] +' connected!', client['id'], ' Current #connections: ', len(cur_clients))
+                cur_clients[msg_lst[1]] = client 
+                print('Client ' + str(msg_lst[1]) +' connected! ' + str(client['id'])+ ' Current #connections: ' + str(len(cur_clients)))
                 if len(cur_clients) == agents and len(simulation) > 0:
                     progress = True
                     print('Log: All clients connected, can now start data bridge')
@@ -46,12 +50,11 @@ def message_received(client, server, message):
         #d{message_incoming}
         if 'id' in simulation:
             if check_valid_receipt() and client['id']==simulation['id'] and progress:
-                if len(cur_actions) == agents:
-                    cur_data = message[1:]
-                    print("Log: Server received this from simulation: ", cur_data)
-                    generate_valid_receipt(False)
-                else:
-                    print("Receive Error: Messages ignored - haven't received all actions from nets")
+                cur_data = message[1:]
+                print("Log: Server received this from simulation: " + cur_data)
+                generate_valid_receipt(False)
+                for cur in cur_clients:
+                    server.send_message(cur_clients[cur], cur_data)
             else:
                 if progress == False: 
                     print('Send Error: All clients have not connected')
@@ -64,28 +67,29 @@ def message_received(client, server, message):
         msg_lst = message[1:].split(':')
         cur_actions[int(msg_lst[0])] = msg_lst[1]
         cur_data = "" #Reset current data as the state is 
-        print('Log: Actions ', cur_actions)
+        print(cur_actions)
         if len(cur_actions) == agents and progress:
             #Send data back to simulation ({action_0}...{action_[agent-1]})
-            print('Log: Sending following data back to simulation *asynchronously*: ', cur_actions)
+            print('Log: Sending following data back to simulation *asynchronously*: ' +  cur_actions)
             msg = str(cur_actions[0])
             for i in range(agents): 
                 if i == 0: continue
                 msg = msg + ':' + str(cur_actions[i])
-                server.send_message(simulation, msg)
-                cur_data = "" #Reset current data
+            server.send_message(simulation, msg)
+            cur_data = "" #Reset current data
+            cur_actions = {}
     elif message[0] == 'r':
-        #This is a data request (to serve states to clients)
+        #This is a data request (to serve states to clients) - (r{client_id})
         net_id = message[1:]
         #Need to send data to clients
         if (not cur_data == "") and progress:
-            server.send_message(cur_clients[net_id], cur_data) #Sent to client requesting data
+            server.send_message(cur_clients[net_id] + cur_data) #Sent to client requesting data
             for i in range(agents):
                 valid_receipt[i] = False
     elif message[0] == 'k':
         #This a received data response
         net_id = message[1:]
-        valid_receipt[net_id] = True
+        valid_receipt[int(net_id)] = True
         print(valid_receipt)
 
 def client_left(client, server):
@@ -101,7 +105,7 @@ def client_left(client, server):
         if cur_clients[cur]['id'] == client['id']:
             progress = False
             del cur_clients[cur]
-            print('Connect Error: Client ' + cur + ' disconnected!', client['id'])
+            print('Connect Error: Client ' + cur + ' disconnected! ' + str(client['id']))
             cur_state = ""
             return
 

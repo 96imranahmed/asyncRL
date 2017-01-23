@@ -4,6 +4,7 @@ import itertools
 import collections
 import numpy as np
 import tensorflow as tf
+import connect
 
 from inspect import getsourcefile
 current_path = os.path.dirname(os.path.abspath(getsourcefile(lambda:0)))
@@ -68,8 +69,10 @@ def make_train_op(local_estimator, global_estimator):
 
 
 class Worker(object):
-  def __init__(self, name, global_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
+  def __init__(self, lock_in, id_in, name, global_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
+    self.lock = lock_in
+    self.id = id_in
     self.discount_factor = discount_factor
     self.max_global_steps = max_global_steps
     self.global_step = tf.contrib.framework.get_global_step()
@@ -92,10 +95,13 @@ class Worker(object):
 
     self.epsilon_update = float(self.start_epsilon-self.end_epsilon)/float(self.annealing_steps)
 
+    #Websocket stuff
+    self.ws = connect.create_socket('sclient:'+str(self.id))
+
     # Create two local q nets - target and main
     with tf.variable_scope(name + "main"):
       self.main_qn = DuelingDDQN()
-    with tf.variable_scope(name + "target")
+    with tf.variable_scope(name + "target"):
       self.target_qn = DuelingDDQN()
 
     # Op to copy params from global policy/valuenets
@@ -117,7 +123,8 @@ class Worker(object):
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
       # Initial state
-      self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) # Needs fixing - need to make initial state using Imran's reset code
+      self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':-1', str(self.id), self.lock)) #Sends reset flag to simulation on behalf of current client
+      #self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) # Needs fixing - need to make initial state using Imran's reset code
       try:
         # first of all, logic here to store some stuff in the experience replay
         INITIAL_STEPS = 2000
@@ -131,7 +138,7 @@ class Worker(object):
           # if step number %4 == 0 , call copy params op and copy target op
           # sample to get past transitions
           # call update on this
-          self.state = send_reset_signal() # TODO implement this on the client
+          self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':-1', str(self.id),  self.lock))
           timestep = 0
           self.net_reward = 0 # total episode reward - reset to zero at the end of every episode
 
@@ -170,7 +177,7 @@ class Worker(object):
       action = sess.run(self.main_qn.predict,feed_dict={main_qn.states:[self.state]})[0]
       print("choosing action from network output, it is ", action)
 
-    next_state, reward, done = step_simulation(action) # TODO implement this client side
+    next_state, reward, done = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':'+str(action), str(self.id), self.lock)) # TODO implement this client side
    
     self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
 
@@ -190,8 +197,7 @@ class Worker(object):
     for _ in range(steps):
       # Take a step, completely at random, and tick over the simulation
       action = np.random.randint(0,4)
-      next_state, reward, done, _ = self.env.step(action) # need to reimplement env.step
-      next_state = atari_helpers.atari_make_next_state(self.state, self.sp.process(next_state)) # wtf is this?
+      next_state, reward, done, _ = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':'+str(action), str(self.id),  self.lock))
 
       # Store transition
       self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))

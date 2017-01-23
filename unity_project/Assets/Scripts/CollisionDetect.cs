@@ -21,6 +21,7 @@ public class CollisionDetect : MonoBehaviour {
 	void Update () {
 		if (dest) {
             dataScript.goals.Remove(id);
+			dataScript.colDets.Remove (id);
 			Destroy (gameObject);
 		}
 	}
@@ -29,6 +30,7 @@ public class CollisionDetect : MonoBehaviour {
         if(other.gameObject.tag == "Drone")
         {
             dataScript.goals.Remove(id);
+			dataScript.colDets.Remove (id);
             dataScript.success += 1;
             Destroy(gameObject);
         }
