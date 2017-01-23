@@ -44,13 +44,12 @@ def make_copy_params_op(v1_list, v2_list, tau=None):
 
   update_ops = []
 
-  if tau is None:
-    for v1, v2 in zip(v1_list, v2_list):
-      if tau is None:
-        op = v2.assign(v1)
-      else:
-        op = v2.assign((v1.value()*tau) + ((1-tau)*v1.value()))
-      update_ops.append(op)
+  for v1, v2 in zip(v1_list, v2_list):
+    if tau is None:
+      op = v2.assign(v1)
+    else:
+      op = v2.assign((v1.value()*tau) + ((1-tau)*v1.value()))
+    update_ops.append(op)
   return update_ops
 
 
@@ -69,8 +68,6 @@ def make_train_op(local_estimator, global_estimator):
 
 
 class Worker(object):
-  # TODO - change the args to only accept one global network, not two.
-  # TODO - initialise two local Q networks - one for target, one as main. See AJ's code in simple sim
   def __init__(self, name, global_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
     self.discount_factor = discount_factor
@@ -79,9 +76,9 @@ class Worker(object):
     self.global_network = global_net
     self.global_counter = global_counter
     self.local_counter = itertools.count()
-    self.sp = StateProcessor() # NEEDS FIXING
+    #self.sp = StateProcessor() # NEEDS FIXING
     self.summary_writer = summary_writer
-    self.env = env #need to set this up with a private simulation environment
+    #self.env = env #need to set this up with a private simulation environment
     self.replay_memory = experience_buffer() # needed to allow for exeperience replay
     self.batch_size = 32 # how many items to sample from the experience when training
 
@@ -150,7 +147,7 @@ class Worker(object):
 
             if timestep % 4 == 0:
               # sample from experience
-              train_batch = self.replay_memory.sample(batch_size)
+              train_batch = self.replay_memory.sample(self.batch_size)
 
               self.update(train_batch,sess)
 
@@ -190,7 +187,6 @@ class Worker(object):
 
   # this is probably ok as is, just adding to replay memory
   def build_replay_memory(self, steps, sess):
-    experience = []
     for _ in range(steps):
       # Take a step, completely at random, and tick over the simulation
       action = np.random.randint(0,4)
@@ -198,9 +194,9 @@ class Worker(object):
       next_state = atari_helpers.atari_make_next_state(self.state, self.sp.process(next_state)) # wtf is this?
 
       # Store transition
-      experience.append(Transition(
-        state=self.state, action=action, reward=reward, next_state=next_state, done=done))
-    self.replay_memory.add(experience)
+      self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
+      self.state = next_state
+
 
 
 

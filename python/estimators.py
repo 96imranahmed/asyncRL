@@ -36,7 +36,7 @@ class DuelingDDQN():
 
 
     # Build base part of net and get output
-    self.op_shared = build_main_network(states, add_summaries=(not reuse))
+    self.op_shared = build_main_network(self.states, add_summaries=(not reuse))
 
     # separate op_shared into advantage and value streams
     # TODO check this is actually doing what it should be

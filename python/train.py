@@ -37,7 +37,7 @@ FLAGS = tf.flags.FLAGS
 VALID_ACTIONS = list(range(4))
 
 # Set the number of workers
-NUM_WORKERS = multiprocessing.cpu_count()
+NUM_WORKERS = 4
 if FLAGS.parallelism:
   NUM_WORKERS = FLAGS.parallelism
 
@@ -58,7 +58,6 @@ with tf.device("/cpu:0"):
   # Keeps track of the number of updates we've performed
   global_step = tf.Variable(0, name="global_step", trainable=False)
 
-  # Global policy and value nets - TODO - make this into just one network (a dueling DQN)
   with tf.variable_scope("global") as vs:
     global_network = DuelingDDQN()
 
@@ -76,7 +75,6 @@ with tf.device("/cpu:0"):
       worker_summary_writer = summary_writer
 
 # we have to augment this to include some information about the environment
-# TODO change as above and also remember we only pass ONE global network to the worker, not two.
     worker = Worker(
       name="worker_{}".format(worker_id),
       global_net=global_network,
@@ -86,7 +84,7 @@ with tf.device("/cpu:0"):
       max_global_steps=FLAGS.max_global_steps)
     workers.append(worker)
 
-  saver = tf.train.Saver(keep_checkpoint_every_n_hours=2.0, max_to_keep=10)
+  saver = tf.train.Saver(keep_checkpoint_every_n_hours=0.25, max_to_keep=10)
 
 with tf.Session() as sess:
   sess.run(tf.initialize_all_variables())
