@@ -41,6 +41,8 @@ public class Movement : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
+		Debug.Log (toSend);
+		Debug.Log (direction);
         if (!Physics.Raycast(transform.position, -Vector3.up, Mathf.Infinity))
         {
             Debug.Log("raycast");
@@ -120,6 +122,8 @@ public class Movement : MonoBehaviour {
 
     private void ApplyForce()
     {
+//		Debug.Log (direction);
+//		Debug.Log (discrete);
         newDirection = direction * forceMagnitude;
         droneRigidbody.AddForce(newDirection);
         // fix roll and pitch

@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 import connect
 import threading
+import random
 
 from inspect import getsourcefile
 current_path = os.path.dirname(os.path.abspath(getsourcefile(lambda:0)))
@@ -154,8 +155,8 @@ class Worker(object):
             timestep += 1
             total_steps_done += 1
             
-            if epsilon > self.end_epsilon:
-              epsilon -= self.epsilon_update
+            if self.epsilon > self.end_epsilon:
+              self.epsilon -= self.epsilon_update
 
             self.run_one_step(sess)
 
@@ -181,7 +182,7 @@ class Worker(object):
       action = np.random.randint(0,4)
       print("choosing random action, it is " + str(action))
     else:
-      action = sess.run(self.main_qn.predict,feed_dict={main_qn.states:[self.state]})[0]
+      action = sess.run(self.main_qn.predict,feed_dict={self.main_qn.states:[self.state]})[0]
       print("choosing action from network output, it is " + str(action))
 
     data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id))
@@ -219,13 +220,13 @@ class Worker(object):
   # TODO - should mirror part of the simple_sim. Structure here is a lot better, so use this
   def update(self, train_batch, sess):
 
-    actions_from_q1 = sess.run(main_qn.predict,feed_dict={main_qn.states:np.vstack(train_batch[:,3])})
+    actions_from_q1 = sess.run(self.main_qn.predict,feed_dict={self.main_qn.states:np.vstack(train_batch[:,3])})
 
-    all_q_vals = sess.run(target_qn.q_out,feed_dict={target_qn.states:np.vstack(trainBatch[:,3])})
+    all_q_vals = sess.run(self.target_qn.q_out,feed_dict={self.target_qn.states:np.vstack(train_batch[:,3])})
 
     end_multiplier = -(train_batch[:,4] - 1)
 
-    double_q_values = all_q_vals[range(batch_size),actions_from_q1]
+    double_q_values = all_q_vals[range(self.batch_size),actions_from_q1]
     target_q_vals = train_batch[:,2] + (self.discount_factor * double_q_values * end_multiplier)
 
     feeder = {

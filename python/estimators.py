@@ -24,7 +24,7 @@ class DuelingDDQN():
 
   def __init__(self, reuse=False, trainable=True):
     self.num_actions = 4
-    self.state_vec_size = 30 # TODO actually fix this
+    self.state_vec_size = 33 # TODO actually fix this
     # Placeholders for our input
     self.states = tf.placeholder(shape=[None, self.state_vec_size], dtype=tf.float32, name="states")
     # The TD target value

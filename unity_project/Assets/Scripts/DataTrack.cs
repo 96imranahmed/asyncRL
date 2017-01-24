@@ -59,7 +59,7 @@ public class DataTrack : MonoBehaviour {
 		ws_cur.OnMessage += (sender, e) => {
             if (e.IsText)
             {
-				Debug.Log(e.Data);
+				//Debug.Log(e.Data);
                 if (netControlled)
                 {
                     netControlled = true;
@@ -76,29 +76,29 @@ public class DataTrack : MonoBehaviour {
 							colDet.dest = true;
 						}
 					}
-				}
+				} 
 				List<string> stringList = actions.Split(':').ToList();
-				int reset = 0;
                 for (int i = 0; i < 4; i++)
                 {
                     int action = (int)char.GetNumericValue(actions[i]);
-
                     if (action == 0) {
 						moves[i].direction = dir0;
+						//Debug.Log("yo");
                     }
                     else if (action == 1) {
 						moves[i].direction = dir1;
+						//Debug.Log("ya");
                     }
                     else if (action == 2) {
 						moves[i].direction = dir2;
+						//Debug.Log("ye");
                     }
                     else if (action == 3) {
 						moves[i].direction = dir3;
+						//Debug.Log("ying");
 					} 
-					else if (action == -1) {
-						reset+=1;
-					}
 					moves[i].toSend = true;
+
                     //Debug.Log("Received action, " + e.Data.ToString());
                 }
             }

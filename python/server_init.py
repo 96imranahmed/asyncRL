@@ -82,7 +82,7 @@ def message_received(client, server, message):
         net_id = message[1:]
         #Need to send data to clients
         if (not cur_data == "") and progress:
-            server.send_message(cur_clients[net_id] + cur_data) #Sent to client requesting data
+            server.send_message(cur_clients[net_id], cur_data) #Sent to client requesting data
             for i in range(agents):
                 valid_receipt[i] = False
     elif message[0] == 'k':
@@ -110,8 +110,8 @@ def client_left(client, server):
 
 def check_valid_receipt():
     global valid_receipt, agents
-    print('Message receipts')
-    print(valid_receipt)
+    # print('Message receipts')
+    # print(valid_receipt)
     chk = True
     if not len(valid_receipt) == agents: return False
     for i in range(agents):
