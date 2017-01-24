@@ -22,7 +22,6 @@ def start_server():
     server.run_forever()
 
 def message_received(client, server, message):
-    print(message)
     global agents, simulation, cur_clients, cur_actions, cur_state, progress, cur_data, valid_receipt
     if len(message) == 0: return
     if message[0] == 'e':
@@ -67,10 +66,10 @@ def message_received(client, server, message):
         msg_lst = message[1:].split(':')
         cur_actions[int(msg_lst[0])] = msg_lst[1]
         cur_data = "" #Reset current data as the state is 
-        print(cur_actions)
         if len(cur_actions) == agents and progress:
             #Send data back to simulation ({action_0}...{action_[agent-1]})
-            print('Log: Sending following data back to simulation *asynchronously*: ' +  cur_actions)
+            print('Log: Sending following data back to simulation *asynchronously*')
+            print(cur_actions)
             msg = str(cur_actions[0])
             for i in range(agents): 
                 if i == 0: continue
@@ -111,7 +110,8 @@ def client_left(client, server):
 
 def check_valid_receipt():
     global valid_receipt, agents
-    print('Message receipts: ', valid_receipt)
+    print('Message receipts')
+    print(valid_receipt)
     chk = True
     if not len(valid_receipt) == agents: return False
     for i in range(agents):

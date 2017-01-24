@@ -102,8 +102,7 @@ with tf.Session() as sess:
   # Start worker threads
   worker_threads = []
   for worker in workers:
-    worker_fn = lambda: worker.run(sess, coord, FLAGS.t_max)
-    t = threading.Thread(target=worker_fn)
+    t = threading.Thread(target=worker.run, args = (sess,coord,FLAGS.t_max))
     t.start()
     worker_threads.append(t)
 

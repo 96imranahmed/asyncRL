@@ -1,10 +1,13 @@
+from __future__ import print_function
 import sys
+print = lambda x: sys.stdout.write("%s\n" % x)
 import os
 import itertools
 import collections
 import numpy as np
 import tensorflow as tf
 import connect
+import threading
 
 from inspect import getsourcefile
 current_path = os.path.dirname(os.path.abspath(getsourcefile(lambda:0)))
@@ -71,8 +74,8 @@ def make_train_op(local_estimator, global_estimator):
 class Worker(object):
   def __init__(self, lock_in, id_in, name, global_net, global_counter, discount_factor=0.99, summary_writer=None, max_global_steps=None):
     self.name = name
-    self.lock = lock_in
-    self.id = id_in
+    self.lady_lock = lock_in
+    self.thread_id = id_in
     self.discount_factor = discount_factor
     self.max_global_steps = max_global_steps
     self.global_step = tf.contrib.framework.get_global_step()
@@ -96,7 +99,7 @@ class Worker(object):
     self.epsilon_update = float(self.start_epsilon-self.end_epsilon)/float(self.annealing_steps)
 
     #Websocket stuff
-    self.ws = connect.create_socket('sclient:'+str(self.id))
+    self.ws = connect.create_socket('sclient:'+str(self.thread_id))
 
     # Create two local q nets - target and main
     with tf.variable_scope(name + "main"):
@@ -123,7 +126,9 @@ class Worker(object):
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
       # Initial state
-      self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':-1', str(self.id), self.lock)) #Sends reset flag to simulation on behalf of current client
+      self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id), self.lady_lock))
+      #Sends reset flag to simulation on behalf of current client
+      print('Done with initial reset with thread ' + str(self.thread_id))
       #self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) # Needs fixing - need to make initial state using Imran's reset code
       try:
         # first of all, logic here to store some stuff in the experience replay
@@ -138,7 +143,7 @@ class Worker(object):
           # if step number %4 == 0 , call copy params op and copy target op
           # sample to get past transitions
           # call update on this
-          self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':-1', str(self.id),  self.lock))
+          self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id),  self.lady_lock))
           timestep = 0
           self.net_reward = 0 # total episode reward - reset to zero at the end of every episode
 
@@ -172,12 +177,12 @@ class Worker(object):
     #Choose an action by greedily (with e chance of random action) from the Q-network
     if np.random.rand(1) < self.epsilon:
       action = np.random.randint(0,4)
-      print("choosing random action, it is ", action)
+      print("choosing random action, it is " + str(action))
     else:
       action = sess.run(self.main_qn.predict,feed_dict={main_qn.states:[self.state]})[0]
-      print("choosing action from network output, it is ", action)
+      print("choosing action from network output, it is " + str(action))
 
-    next_state, reward, done = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':'+str(action), str(self.id), self.lock)) # TODO implement this client side
+    next_state, reward, done = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id), self.lady_lock)) # TODO implement this client side
    
     self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
 
@@ -197,7 +202,7 @@ class Worker(object):
     for _ in range(steps):
       # Take a step, completely at random, and tick over the simulation
       action = np.random.randint(0,4)
-      next_state, reward, done, _ = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.id)+':'+str(action), str(self.id),  self.lock))
+      next_state, reward, done, _ = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id),  self.lady_lock))
 
       # Store transition
       self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
