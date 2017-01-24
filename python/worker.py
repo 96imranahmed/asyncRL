@@ -229,10 +229,16 @@ class Worker(object):
     double_q_values = all_q_vals[range(self.batch_size),actions_from_q1]
     target_q_vals = train_batch[:,2] + (self.discount_factor * double_q_values * end_multiplier)
 
+    # here is the windows fix to build the onehot matrix outside tensorflow
+    actions_vector = train_batch[:,1].astype(int)
+    b_size = len(actions_vector)
+    temp_onehot = np.zeros((b_size,4))
+    temp_onehot[np.arange(b_size), actions_vector] = 1
+
     feeder = {
       self.main_qn.states: np.vstack(train_batch[:,0]),
       self.main_qn.target_q: target_q_vals,
-      self.main_qn.actions: train_batch[:,1]
+      self.main_qn.actions_onehot: temp_onehot
     }
 
     global_step, main_qn_loss, _,_ = sess.run([

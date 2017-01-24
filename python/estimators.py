@@ -29,10 +29,11 @@ class DuelingDDQN():
     self.states = tf.placeholder(shape=[None, self.state_vec_size], dtype=tf.float32, name="states")
     # The TD target value
     self.target_q = tf.placeholder(shape=[None], dtype=tf.float32, name="target_q")
-    self.actions = tf.placeholder(shape=[None],dtype=tf.int32)
+    #self.actions = tf.placeholder(shape=[None],dtype=tf.int32)
 
     # TODO - fix this for windows - pull windows branch and then see
-    self.actions_onehot = tf.one_hot(self.actions,self.num_actions,dtype=tf.float32)
+    # updated - fixed for windows
+    self.actions_onehot = tf.placeholder(shape=[None,self.num_actions],dtype=tf.float32)
 
 
     # Build base part of net and get output
