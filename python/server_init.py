@@ -50,7 +50,7 @@ def message_received(client, server, message):
         if 'id' in simulation:
             if check_valid_receipt() and client['id']==simulation['id'] and progress:
                 cur_data = message[1:]
-                print("Log: Server received this from simulation: " + cur_data)
+                # print("Log: Server received this from simulation: " + cur_data)
                 generate_valid_receipt(False)
                 for cur in cur_clients:
                     server.send_message(cur_clients[cur], cur_data)
@@ -68,8 +68,8 @@ def message_received(client, server, message):
         cur_data = "" #Reset current data as the state is 
         if len(cur_actions) == agents and progress:
             #Send data back to simulation ({action_0}...{action_[agent-1]})
-            print('Log: Sending following data back to simulation *asynchronously*')
-            print(cur_actions)
+            # print('Log: Sending following data back to simulation *asynchronously*')
+            # print(cur_actions)
             msg = str(cur_actions[0])
             for i in range(agents): 
                 if i == 0: continue
@@ -89,7 +89,7 @@ def message_received(client, server, message):
         #This a received data response
         net_id = message[1:]
         valid_receipt[int(net_id)] = True
-        print(valid_receipt)
+        # print(valid_receipt)
 
 def client_left(client, server):
     global agents, simulation, cur_clients, cur_state, progress

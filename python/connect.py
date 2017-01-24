@@ -6,8 +6,7 @@ import sys
 import time
 
 
-def send_message_sync(ws, message, id_in, lock):
-    print('Requesting thread: ' + str(id_in) + ' ' + message)
+def send_message_sync(ws, message, id_in):
     ws.send(message)
     result = None
     count = 0
@@ -38,5 +37,12 @@ def create_socket(connect_message):
         pass
     return ws
 
-def state(result_data):
-    return result_data
+def state(result_data, id_in):
+    arr = result_data.split(':')
+    done = (arr[-1] == 8)
+    reward = arr[-1] * 500
+    if reward == 0:
+        reward = -0.2
+    next_state = [int(id_in)]
+    next_state .extend(arr[:-1])
+    return next_state, reward, done 

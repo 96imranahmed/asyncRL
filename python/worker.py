@@ -126,7 +126,8 @@ class Worker(object):
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
       # Initial state
-      self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id), self.lady_lock))
+      data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id))
+      self.state = connect.state(data, str(self.thread_id))[0]
       #Sends reset flag to simulation on behalf of current client
       print('Done with initial reset with thread ' + str(self.thread_id))
       #self.state = atari_helpers.atari_make_initial_state(self.sp.process(self.env.reset())) # Needs fixing - need to make initial state using Imran's reset code
@@ -143,7 +144,8 @@ class Worker(object):
           # if step number %4 == 0 , call copy params op and copy target op
           # sample to get past transitions
           # call update on this
-          self.state = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id),  self.lady_lock))
+          data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id))
+          self.state = connect.state(data, str(self.thread_id))[0]
           timestep = 0
           self.net_reward = 0 # total episode reward - reset to zero at the end of every episode
 
@@ -182,8 +184,9 @@ class Worker(object):
       action = sess.run(self.main_qn.predict,feed_dict={main_qn.states:[self.state]})[0]
       print("choosing action from network output, it is " + str(action))
 
-    next_state, reward, done = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id), self.lady_lock)) # TODO implement this client side
-   
+    data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id))
+    next_state, reward, done = connect.state(data, str(self.thread_id))
+
     self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
 
     # Increase local and global counters
@@ -202,8 +205,9 @@ class Worker(object):
     for _ in range(steps):
       # Take a step, completely at random, and tick over the simulation
       action = np.random.randint(0,4)
-      next_state, reward, done, _ = connect.state(connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id),  self.lady_lock))
-
+      data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':'+str(action), str(self.thread_id))
+      next_state, reward, done = connect.state(data, str(self.thread_id))
+      
       # Store transition
       self.replay_memory.add(np.reshape(np.array([self.state,action,reward,next_state,done]),[1,5]))
       self.state = next_state
