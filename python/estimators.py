@@ -44,8 +44,8 @@ class DuelingDDQN():
     self.stream_a,self.stream_v = tf.split(1,2,self.op_shared)
 
     # TODO - 200 (op shared size) is hardcoded, probably better to define somewhere
-    self.advantage_weights = tf.Variable(tf.random_normal([200/2,self.num_actions]))
-    self.value_weights = tf.Variable(tf.random_normal([200/2,1]))
+    self.advantage_weights = tf.Variable(tf.random_normal([100,self.num_actions]))
+    self.value_weights = tf.Variable(tf.random_normal([100,1]))
 
     self.advantage = tf.matmul(self.stream_a,self.advantage_weights)
     self.value = tf.matmul(self.stream_v, self.value_weights)
