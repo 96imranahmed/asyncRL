@@ -44,7 +44,7 @@ public class DataTrack : MonoBehaviour {
         dir1 = new Vector3(0f, 0f, 1f); //up
         dir2 = new Vector3(0f, 0f, -1f); // down
         dir3 = new Vector3(-1f, 0f, 0f); //left
-        //instantiateGoal = gameObject.GetComponent<InstantiateGoal>();
+        instantiateGoal = gameObject.GetComponent<InstantiateGoal>();
 
         drones.Add(GameObject.Find("Drone0"));
         drones.Add(GameObject.Find("Drone1"));
@@ -67,7 +67,6 @@ public class DataTrack : MonoBehaviour {
                 string actions = e.Data.ToString();
 				if (actions == "-1:-1:-1:-1") 
 				{
-					Debug.Log("Resetting!");
 					if (goals.Count != 0)
 					{
 						foreach (KeyValuePair<int, CollisionDetect> colPair in colDets)
@@ -139,7 +138,7 @@ public class DataTrack : MonoBehaviour {
             output += round_dp(drone.GetComponent<Rigidbody>().velocity.x).ToString() + ":";
             output += round_dp(drone.GetComponent<Rigidbody>().velocity.z).ToString() + ":";
         }
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < instantiateGoal.numGoals; i++)
         {
             if (goals.ContainsKey(i))
             {

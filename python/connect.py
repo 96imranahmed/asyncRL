@@ -5,6 +5,7 @@ from websocket import create_connection
 import sys
 import time
 
+NUM_GOALS = 20
 
 def send_message_sync(ws, message, id_in):
     ws.send(message)
@@ -40,10 +41,10 @@ def create_socket(connect_message):
 def state(result_data, id_in):
     arr = result_data.split(':')
     arr = [float(i) for i in arr]
-    done = (int(arr[-1]) == 8)
+    done = (int(arr[-1]) == NUM_GOALS)
     reward = (arr[-1]) * 500
     if reward <= 0:
         reward = -0.2
-    next_state = [float(id_in)]
+    next_state = [float(100*id_in)]
     next_state.extend(arr[:-1])
     return next_state, reward, done 

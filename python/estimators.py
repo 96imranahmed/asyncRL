@@ -1,14 +1,20 @@
 import numpy as np
 import tensorflow as tf
 
+NUM_GOALS = 20
+NUM_CUBES = 4
+MAIN_OUTPUT_SIZE = 200
+
 def build_main_network(state, add_summaries=False):
 
   # Five FC layers
   fc_1 = tf.contrib.layers.fully_connected(state, 400, activation_fn=tf.nn.relu)
   fc_2 = tf.contrib.layers.fully_connected(fc_1, 400, activation_fn=tf.nn.relu)
   fc_3 = tf.contrib.layers.fully_connected(fc_2, 300, activation_fn=tf.nn.relu)
-  fc_4 = tf.contrib.layers.fully_connected(fc_2, 300, activation_fn=tf.nn.relu)
-  fc_5 = tf.contrib.layers.fully_connected(fc_2, 200, activation_fn=tf.nn.relu)
+  fc_4 = tf.contrib.layers.fully_connected(fc_3, 300, activation_fn=tf.nn.relu)
+  fc_5 = tf.contrib.layers.fully_connected(fc_4, 300, activation_fn=tf.nn.relu)
+  fc_6 = tf.contrib.layers.fully_connected(fc_5, 200, activation_fn=tf.nn.relu)
+  fc_7 = tf.contrib.layers.fully_connected(fc_6, MAIN_OUTPUT_SIZE, activation_fn=tf.nn.relu)
 
   if add_summaries:
     tf.contrib.layers.summarize_activation(fc_1)
@@ -16,15 +22,17 @@ def build_main_network(state, add_summaries=False):
     tf.contrib.layers.summarize_activation(fc_3)
     tf.contrib.layers.summarize_activation(fc_4)
     tf.contrib.layers.summarize_activation(fc_5)
+    tf.contrib.layers.summarize_activation(fc_6)
+    tf.contrib.layers.summarize_activation(fc_7)
 
-  return fc_5
+  return fc_7
 
 
 class DuelingDDQN():
 
   def __init__(self, reuse=False, trainable=True):
     self.num_actions = 4
-    self.state_vec_size = 33 # TODO actually fix this
+    self.state_vec_size = 4*NUM_CUBES + 2*NUM_GOALS + 1 # TODO actually fix this
     # Placeholders for our input
     self.states = tf.placeholder(shape=[None, self.state_vec_size], dtype=tf.float32, name="states")
     # The TD target value
@@ -44,8 +52,8 @@ class DuelingDDQN():
     self.stream_a,self.stream_v = tf.split(1,2,self.op_shared)
 
     # TODO - 200 (op shared size) is hardcoded, probably better to define somewhere
-    self.advantage_weights = tf.Variable(tf.random_normal([100,self.num_actions]))
-    self.value_weights = tf.Variable(tf.random_normal([100,1]))
+    self.advantage_weights = tf.Variable(tf.random_normal([int(MAIN_OUTPUT_SIZE/2),self.num_actions]))
+    self.value_weights = tf.Variable(tf.random_normal([int(MAIN_OUTPUT_SIZE/2),1]))
 
     self.advantage = tf.matmul(self.stream_a,self.advantage_weights)
     self.value = tf.matmul(self.stream_v, self.value_weights)
