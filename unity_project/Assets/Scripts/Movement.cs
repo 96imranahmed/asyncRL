@@ -41,8 +41,8 @@ public class Movement : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-		Debug.Log (toSend);
-		Debug.Log (direction);
+		//Debug.Log (toSend);
+		//Debug.Log (direction);
         if (!Physics.Raycast(transform.position, -Vector3.up, Mathf.Infinity))
         {
             Debug.Log("raycast");
@@ -59,6 +59,7 @@ public class Movement : MonoBehaviour {
         }
         else
         {
+            //Debug.Log("applying force");
             ApplyForce();
         }
         transform.position = new Vector3(transform.position.x, 0.5f, transform.position.z);
@@ -66,13 +67,15 @@ public class Movement : MonoBehaviour {
 
     void LateUpdate()
     {
+        //Debug.Log(dataTrackScript.netControlled);
         if (discrete)
         {
             transform.position = targetPosition;
         }
         if (dataTrackScript.netControlled && toSend)
         {
-			//dataTrackScript.SendData ();
+            //dataTrackScript.SendData ();
+            //Debug.Log(direction);
             direction = Vector3.zero;
         }
 
@@ -122,7 +125,7 @@ public class Movement : MonoBehaviour {
 
     private void ApplyForce()
     {
-//		Debug.Log (direction);
+		//Debug.Log (direction);
 //		Debug.Log (discrete);
         newDirection = direction * forceMagnitude;
         droneRigidbody.AddForce(newDirection);

@@ -60,7 +60,7 @@ public class DataTrack : MonoBehaviour {
             if (e.IsText)
             {
 				//Debug.Log(e.Data);
-                if (netControlled)
+                if (!netControlled)
                 {
                     netControlled = true;
                 }
@@ -80,7 +80,7 @@ public class DataTrack : MonoBehaviour {
 				List<string> stringList = actions.Split(':').ToList();
                 for (int i = 0; i < 4; i++)
                 {
-                    int action = (int)char.GetNumericValue(actions[i]);
+                    int action = int.Parse(stringList[i]);
                     if (action == 0) {
 						moves[i].direction = dir0;
 						//Debug.Log("yo");
