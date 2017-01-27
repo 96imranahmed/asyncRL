@@ -166,7 +166,7 @@ class Worker(object):
 
               self.update(train_batch,sess)
 
-              sess.run(self.copy_params_op)
+              #sess.run(self.copy_params_op)
               sess.run(self.copy_params_to_target)
 
       except tf.errors.CancelledError:
@@ -241,11 +241,17 @@ class Worker(object):
       self.main_qn.actions_onehot: temp_onehot
     }
 
+    # global_step, main_qn_loss, _,_ = sess.run([
+    #   self.global_step,
+    #   self.main_qn.loss,
+    #   self.main_qn.train_op,
+    #   self.global_train_op]
+    #   , feed_dict=feeder)
+
     global_step, main_qn_loss, _,_ = sess.run([
       self.global_step,
       self.main_qn.loss,
-      self.main_qn.train_op,
-      self.global_train_op]
+      self.main_qn.train_op]
       , feed_dict=feeder)
 
     # todo add summaries also
