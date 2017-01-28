@@ -15,6 +15,8 @@ def send_message_sync(ws, message, id_in):
         try:
             ws.send('r'+id_in)
             result =  ws.recv()
+            if result == 'k':
+                result = None
         except:
             count+=1
     receipt = None
@@ -50,6 +52,7 @@ def state(result_data, id_in):
     reward = (arr[-1]) * 500
     if reward <= 0:
         reward = -0.2
-    next_state = [float(100*id_in)]
+    next_state = arr[int(id_in):int(id_in)+4]
+    next_state = [float(i) for i in next_state]
     next_state.extend(arr[:-1])
     return next_state, reward, done 

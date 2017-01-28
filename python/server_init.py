@@ -85,8 +85,7 @@ def message_received(client, server, message):
         #Need to send data to clients
         if (not cur_data == "") and progress:
             server.send_message(cur_clients[net_id], cur_data) #Sent to client requesting data
-            for i in range(agents):
-                valid_receipt[i] = False
+            valid_receipt[int(net_id)] = False
     elif message[0] == 'k':
         #This a received data response
         net_id = message[1:]
