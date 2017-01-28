@@ -25,7 +25,7 @@ from estimators import DuelingDDQN
 # buffer should be a list of transition tuples
 # when we call experience_buffer.add(exp) need to make sure exp is a list of transition tuples also
 class experience_buffer():
-  def __init__(self, buffer_size = 50000):
+  def __init__(self, buffer_size = 200000):
     self.buffer = []
     self.buffer_size = buffer_size
   
@@ -91,7 +91,7 @@ class Worker(object):
 
     self.start_epsilon = 1
     self.end_epsilon = 0.1
-    self.annealing_steps = 30000
+    self.annealing_steps = 500000
     self.epsilon = self.start_epsilon
 
     self.done = False
@@ -159,12 +159,14 @@ class Worker(object):
               self.epsilon -= self.epsilon_update
 
             self.run_one_step(sess)
-
+            print(total_steps_done)
             if timestep % 4 == 0:
               # sample from experience
               train_batch = self.replay_memory.sample(self.batch_size)
 
-              self.update(train_batch,sess)
+              loss_value = self.update(train_batch,sess)
+
+              print ("the loss is " +  str(loss_value))
 
               # sess.run(self.copy_params_op)
               sess.run(self.copy_params_to_target)
@@ -253,6 +255,7 @@ class Worker(object):
       self.main_qn.train_op]
       , feed_dict=feeder)
 
+    return main_qn_loss
     # todo add summaries also
 
     # # Write summaries
