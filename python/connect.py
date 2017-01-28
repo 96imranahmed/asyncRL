@@ -15,10 +15,15 @@ def send_message_sync(ws, message, id_in):
         try:
             ws.send('r'+id_in)
             result =  ws.recv()
-            pass
         except:
             count+=1
-    ws.send('k'+id_in)
+    receipt = None
+    while receipt is None:
+        try:
+            ws.send('k'+id_in)
+            receipt =  ws.recv()
+        except:
+            pass
     return result
 
 def all_synced():

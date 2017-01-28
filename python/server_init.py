@@ -48,19 +48,21 @@ def message_received(client, server, message):
         #This is a simulation data message - Updates message stored on server (in sync)
         #d{message_incoming}
         if 'id' in simulation:
-            if check_valid_receipt() and client['id']==simulation['id'] and progress:
-                cur_data = message[1:]
-                # print("Log: Server received this from simulation: " + cur_data)
-                generate_valid_receipt(False)
-                for cur in cur_clients:
-                    server.send_message(cur_clients[cur], cur_data)
-            else:
-                if progress == False: 
-                    print('Send Error: All clients have not connected')
-                else: 
+            if progress:
+                if client['id'] == simulation['id']:
+                    if check_valid_receipt():
+                        cur_data = message[1:]
+                        # print("Log: Server received this from simulation: " + cur_data)
+                        generate_valid_receipt(False)
+                        for cur in cur_clients:
+                            server.send_message(cur_clients[cur], cur_data)
+                    else:
+                        print('Send Error: Server has not received message receipt from all nets')
+                        print(valid_receipt)
+                else:
                     print('Send Error: Incorrect sender - sender was not Unity simulator')
-        else:
-            print('Send Error: Incorrect sender - no simulator has connected')
+            else:
+                print('Send Error: All clients have not connected')
     elif message[0] == 'c':
         #This is a client data message representing AN ACTION (c{client_id}:{client_action})
         msg_lst = message[1:].split(':')
@@ -89,6 +91,7 @@ def message_received(client, server, message):
         #This a received data response
         net_id = message[1:]
         valid_receipt[int(net_id)] = True
+        server.send_message(cur_clients[net_id],'k')
         # print(valid_receipt)
 
 def client_left(client, server):
