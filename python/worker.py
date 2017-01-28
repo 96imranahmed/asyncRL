@@ -247,7 +247,7 @@ class Worker(object):
     #   self.main_qn.train_op,
     #   self.global_train_op]
     #   , feed_dict=feeder)
-      global_step, main_qn_loss, _ = sess.run([
+    global_step, main_qn_loss, _ = sess.run([
       self.global_step,
       self.main_qn.loss,
       self.main_qn.train_op]
