@@ -10,11 +10,13 @@ def build_main_network(state, add_summaries=False):
   # Five FC layers
   fc_1 = tf.contrib.layers.fully_connected(state, 400, activation_fn=tf.nn.relu)
   fc_2 = tf.contrib.layers.fully_connected(fc_1, 400, activation_fn=tf.nn.relu)
-  fc_3 = tf.contrib.layers.fully_connected(fc_2, 300, activation_fn=tf.nn.relu)
-  fc_4 = tf.contrib.layers.fully_connected(fc_3, 300, activation_fn=tf.nn.relu)
+  fc_3 = tf.contrib.layers.fully_connected(fc_2, 400, activation_fn=tf.nn.relu)
+  fc_4 = tf.contrib.layers.fully_connected(fc_3, 400, activation_fn=tf.nn.relu)
   fc_5 = tf.contrib.layers.fully_connected(fc_4, 300, activation_fn=tf.nn.relu)
-  fc_6 = tf.contrib.layers.fully_connected(fc_5, 200, activation_fn=tf.nn.relu)
-  fc_7 = tf.contrib.layers.fully_connected(fc_6, MAIN_OUTPUT_SIZE, activation_fn=tf.nn.relu)
+  fc_6 = tf.contrib.layers.fully_connected(fc_5, 300, activation_fn=tf.nn.relu)
+  fc_7 = tf.contrib.layers.fully_connected(fc_6, 300, activation_fn=tf.nn.relu)
+  fc_8 = tf.contrib.layers.fully_connected(fc_7, 200, activation_fn=tf.nn.relu)
+  fc_9 = tf.contrib.layers.fully_connected(fc_8, MAIN_OUTPUT_SIZE, activation_fn=tf.nn.relu)
 
   if add_summaries:
     tf.contrib.layers.summarize_activation(fc_1)
@@ -25,7 +27,7 @@ def build_main_network(state, add_summaries=False):
     tf.contrib.layers.summarize_activation(fc_6)
     tf.contrib.layers.summarize_activation(fc_7)
 
-  return fc_7
+  return fc_9
 
 
 class DuelingDDQN():
