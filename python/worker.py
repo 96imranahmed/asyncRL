@@ -123,8 +123,8 @@ class Worker(object):
 
     self.state = None
 
-    self.saver = tf.train.Saver(keep_checkpoint_every_n_hours=0.25, max_to_keep=10)
-    self.chkpt_dir = './tmp/net' + str(self.thread_id)
+    self.saver = tf.train.Saver()
+    self.chkpt_dir = './tmp/' + str(self.thread_id) +'/'
 
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
@@ -176,7 +176,8 @@ class Worker(object):
 
               # sess.run(self.copy_params_op)
               sess.run(self.copy_params_to_target)
-
+          if total_steps_done%(1500*20) == 0:
+            self.saver.save(sess,'./tmp/'+str(self.thread_id)+'/model', global_step=total_steps_done)
       except tf.errors.CancelledError:
         return
 
