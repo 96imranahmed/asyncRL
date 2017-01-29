@@ -91,7 +91,7 @@ class Worker(object):
 
     self.start_epsilon = 1
     self.end_epsilon = 0.1
-    self.annealing_steps = 500000
+    self.annealing_steps = 100000
     self.epsilon = self.start_epsilon
 
     self.done = False
@@ -123,9 +123,15 @@ class Worker(object):
 
     self.state = None
 
+    self.saver = tf.train.Saver(keep_checkpoint_every_n_hours=0.25, max_to_keep=10)
+    self.chkpt_dir = './tmp/net' + str(self.thread_id)
 
   def run(self, sess, coord, t_max):
     with sess.as_default(), sess.graph.as_default():
+      latest_checkpoint = tf.train.latest_checkpoint(self.chkpt_dir)
+      if latest_checkpoint:
+        print("Loading model checkpoint: {}".format(latest_checkpoint))
+        saver.restore(sess, latest_checkpoint)
       # Initial state
       data = connect.send_message_sync(self.ws, 'c'+str(self.thread_id)+':-1', str(self.thread_id))
       self.state = connect.state(data, str(self.thread_id))[0]

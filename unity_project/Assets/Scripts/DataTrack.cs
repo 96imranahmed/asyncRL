@@ -23,7 +23,7 @@ public class DataTrack : MonoBehaviour {
 
 	private float timeSinceSend;
 
-    public int success = 0;
+    public int success = -1;
 
     private InstantiateGoal instantiateGoal;
 
@@ -33,7 +33,8 @@ public class DataTrack : MonoBehaviour {
     private List<GameObject> drones;
 	public Dictionary<int, CollisionDetect> colDets = new Dictionary<int, CollisionDetect>();
 	public Dictionary<int, GameObject> goals = new Dictionary<int, GameObject>();
-	private List<Movement> moves = new List<Movement> ();
+    public Dictionary<GameObject, int> droneIds = new Dictionary<GameObject, int>();
+    private List<Movement> moves = new List<Movement> ();
     public bool netControlled = false;
 
     // Use this for initialization
@@ -50,9 +51,11 @@ public class DataTrack : MonoBehaviour {
         drones.Add(GameObject.Find("Drone1"));
         drones.Add(GameObject.Find("Drone2"));
         drones.Add(GameObject.Find("Drone3"));
-
+        int id = 0;
 		foreach (GameObject drone in drones) {
 			moves.Add (drone.GetComponent<Movement> ());
+            droneIds.Add(drone, id);
+            id++;
 		}
  
 		ws_cur = new WebSocket ("ws://localhost:9000");
@@ -166,9 +169,9 @@ public class DataTrack : MonoBehaviour {
     {
         ws_cur.Send('d'+buildOutput());
         //Debug.Log("Sending Data, " + buildOutput());
-        if (success > 0)
+        if (success > -1)
         {
-            success = 0;
+            success = -1;
         }
         timeSinceSend = Time.time;
     }

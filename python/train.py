@@ -24,7 +24,7 @@ from estimators import DuelingDDQN
 from worker import Worker
 
 
-tf.flags.DEFINE_string("model_dir", "/tmp/a3c", "Directory to write Tensorboard summaries and videos to.")
+tf.flags.DEFINE_string("model_dir", "./tmp/a3c", "Directory to write Tensorboard summaries and videos to.")
 #tf.flags.DEFINE_string("env", "Breakout-v0", "Name of gym Atari environment, e.g. Breakout-v0")
 tf.flags.DEFINE_integer("t_max", 5, "Number of steps before performing an update")
 tf.flags.DEFINE_integer("max_global_steps", None, "Stop training after this many steps in the environment. Defaults to running indefinitely.")
@@ -86,8 +86,6 @@ with tf.device("/cpu:0"):
       summary_writer=worker_summary_writer,
       max_global_steps=FLAGS.max_global_steps)
     workers.append(worker)
-
-  saver = tf.train.Saver(keep_checkpoint_every_n_hours=0.25, max_to_keep=10)
 
 with tf.Session() as sess:
   sess.run(tf.initialize_all_variables())

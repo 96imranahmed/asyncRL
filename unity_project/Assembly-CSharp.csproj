@@ -60,7 +60,7 @@
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/UnityAnalytics/UnityEngine.Analytics.dll</HintPath>
  </Reference>
  <Reference Include="websocket-sharp">
- <HintPath>C:/Users/admin/Desktop/asyncRL/unity_project/Assets/websocket-sharp.dll</HintPath>
+ <HintPath>C:/Users/Imran/Desktop/asyncRL/unity_project/Assets/websocket-sharp.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

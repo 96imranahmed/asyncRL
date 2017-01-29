@@ -31,7 +31,7 @@ public class CollisionDetect : MonoBehaviour {
         {
             dataScript.goals.Remove(id);
 			dataScript.colDets.Remove (id);
-            dataScript.success += 1;
+            dataScript.success = dataScript.droneIds[other.gameObject];
             Destroy(gameObject);
         }
     }

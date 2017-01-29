@@ -54,20 +54,22 @@ def state(result_data, id_in):
     arr = [float(i) for i in arr]
     next_state = arr[int(id_in):int(id_in)+4]
     next_state = [float(i) for i in next_state]
+    rew = int(arr[-1])
+    reward = 0
     done = False
-    if id_in == 0:
-        count += int(arr[-1])
-        if count == NUM_GOALS:
-            count = 0
-            done = True
-    reward = (arr[-1]) * 100
-    if reward <= 0:
+    if rew == -1:
         reward = -1
+    else:
+        if int(id_in) == 0:
+            count+=int(arr[-1])
+            if count == NUM_GOALS:
+                count = 0
+                done = True
+        if int(id_in) == rew:
+            reward = 100
     new = []
     for i in range(len(arr)):
-        if i%4 < 2 and i < (NUM_AGENTS*4):
-            new.append(arr[i])
-        elif i >= (NUM_AGENTS*4):
+        if i >= (NUM_AGENTS*4):
             new.append(arr[i])
     next_state.extend(new[:-1])
     return next_state, reward, done 
