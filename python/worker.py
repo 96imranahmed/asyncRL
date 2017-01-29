@@ -176,8 +176,8 @@ class Worker(object):
 
               # sess.run(self.copy_params_op)
               sess.run(self.copy_params_to_target)
-          if total_steps_done%(1500*20) == 0:
-            self.saver.save(sess,'./tmp/'+str(self.thread_id)+'/model', global_step=total_steps_done)
+            if total_steps_done%(1500*20) == 0:
+              self.saver.save(sess,'./tmp/'+str(self.thread_id)+'/model', global_step=total_steps_done)
       except tf.errors.CancelledError:
         return
 
